@@ -47,6 +47,21 @@ export default function SportForm({ sport }: { sport: SportConfig }) {
       });
       const data = await res.json();
       if (res.ok) {
+        // Save to localStorage so user won't see forms again
+        localStorage.setItem(
+          `genesis_registered_${sport.slug}`,
+          JSON.stringify({
+            teamCode: data.teamCode,
+            teamName: values.teamName,
+            role: 'captain',
+            memberName: values.captain.name,
+            sportSlug: sport.slug,
+            sportName: sport.name,
+            savedAt: new Date().toISOString()
+          })
+        )
+        // Reload page so SportPageClient re-reads localStorage and hides forms
+        setTimeout(() => window.location.reload(), 1500)
         setTeamCode(data.teamCode);
         toast.success("Team created successfully!");
       } else {

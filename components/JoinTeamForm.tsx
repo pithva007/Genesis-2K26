@@ -49,6 +49,21 @@ export default function JoinTeamForm({ sport }: { sport: SportConfig }) {
       });
       const data = await res.json();
       if (res.ok) {
+        // Save to localStorage so user won't see forms again
+        localStorage.setItem(
+          `genesis_registered_${sport.slug}`,
+          JSON.stringify({
+            teamCode: values.teamCode.toUpperCase(),
+            teamName: data.team.teamName,
+            role: 'member',
+            memberName: values.member.name,
+            sportSlug: sport.slug,
+            sportName: sport.name,
+            savedAt: new Date().toISOString()
+          })
+        )
+        // Reload page so SportPageClient re-reads localStorage and hides forms
+        setTimeout(() => window.location.reload(), 1500)
         setSuccessTeam({ teamName: data.team.teamName, captainName: data.team.captain.name });
         toast.success("Successfully joined the team!");
       } else {

@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SPORTS_CONFIG } from "@/config/sports.config";
-import SportForm from "@/components/SportForm";
-import JoinTeamForm from "@/components/JoinTeamForm";
+import SportPageClient from "@/components/SportPageClient";
 
 export async function generateStaticParams() {
   return SPORTS_CONFIG.map((sport) => ({ slug: sport.slug }));
@@ -42,26 +41,8 @@ export default function SportDetailsPage({ params }: { params: { slug: string } 
         </div>
       </div>
 
-      {/* Forms */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Create Team */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-2xl font-bold text-white mb-1">🏆 Create Team</h2>
-          <p className="text-white/50 text-sm mb-6">
-            Register as captain and get a unique code to share with your team.
-          </p>
-          <SportForm sport={sport} />
-        </div>
-
-        {/* Join Team — always show, even for individual sports so someone can be added */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-2xl font-bold text-white mb-1">🔗 Join Team</h2>
-          <p className="text-white/50 text-sm mb-6">
-            Have a team code? Enter it below to join your team.
-          </p>
-          <JoinTeamForm sport={sport} />
-        </div>
-      </div>
+      {/* Forms Container */}
+      <SportPageClient sport={sport} />
     </div>
   );
 }
