@@ -9,7 +9,8 @@ import { SportConfig } from "@/config/sports.config";
 import type { RegisteredInfo } from "@/components/SportPageClient";
 
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-const DEPARTMENTS = ["CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "AIDS", "AIML", "CSD", "MBA", "MCA", "Other"];
+const DEPARTMENTS = ["UG student",
+  "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology", "Pathology", "Microbiology", "Medicine", "Surgery", "Obs-Gyne", "Ophthalmology", "Pediatrics", "ENT", "Radiology", "Forensic", "Orthopedics", "Psychiatry", "Dermatology", "Anesthesia"];
 
 const formSchema = z.object({
   teamCode: z.string().length(6, "Team code must be exactly 6 characters").toUpperCase(),
