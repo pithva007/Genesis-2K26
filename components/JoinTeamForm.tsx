@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
 import { SportConfig } from "@/config/sports.config";
+import type { RegisteredInfo } from "@/components/SportPageClient";
 
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 const DEPARTMENTS = ["CSE", "ECE", "EEE", "MECH", "CIVIL", "IT", "AIDS", "AIML", "CSD", "MBA", "MCA", "Other"];
@@ -27,7 +28,12 @@ const selectClass = "w-full bg-[#0d1530] border border-white/15 rounded-lg px-4 
 const labelClass = "block text-sm font-medium text-white/70 mb-1";
 const errorClass = "text-red-400 text-xs mt-1";
 
-export default function JoinTeamForm({ sport }: { sport: SportConfig }) {
+interface JoinTeamFormProps {
+  sport: SportConfig;
+  onRegistered: (info: RegisteredInfo) => void;
+}
+
+export default function JoinTeamForm({ sport, onRegistered }: JoinTeamFormProps) {
   const [loading, setLoading] = useState(false);
   const [successTeam, setSuccessTeam] = useState<{ teamName: string; captainName: string } | null>(null);
 
@@ -49,23 +55,19 @@ export default function JoinTeamForm({ sport }: { sport: SportConfig }) {
       });
       const data = await res.json();
       if (res.ok) {
-        // Save to localStorage so user won't see forms again
-        localStorage.setItem(
-          `genesis_registered_${sport.slug}`,
-          JSON.stringify({
-            teamCode: values.teamCode.toUpperCase(),
-            teamName: data.team.teamName,
-            role: 'member',
-            memberName: values.member.name,
-            sportSlug: sport.slug,
-            sportName: sport.name,
-            savedAt: new Date().toISOString()
-          })
-        )
-        // Reload page so SportPageClient re-reads localStorage and hides forms
-        setTimeout(() => window.location.reload(), 1500)
+        const info: RegisteredInfo = {
+          teamCode: values.teamCode.toUpperCase(),
+          teamName: data.team.teamName,
+          role: 'member',
+          memberName: values.member.name,
+          sportSlug: sport.slug,
+          sportName: sport.name,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`genesis_registered_${sport.slug}`, JSON.stringify(info));
         setSuccessTeam({ teamName: data.team.teamName, captainName: data.team.captain.name });
         toast.success("Successfully joined the team!");
+        onRegistered(info);
       } else {
         toast.error(data.error || "Failed to join team");
       }

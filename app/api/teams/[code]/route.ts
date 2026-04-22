@@ -5,8 +5,8 @@ import { normalizeTeamCode } from "@/lib/teamCode";
 
 export const runtime = "nodejs";
 
-export async function GET(_: Request, { params }: { params: Promise<{ code: string }> }) {
-  const { code } = await params;
+export async function GET(_: Request, { params }: { params: { code: string } }) {
+  const { code } = params;
   await connectDB();
 
   const team = await Team.findOne({ teamCode: normalizeTeamCode(code) }).lean();
@@ -15,10 +15,23 @@ export async function GET(_: Request, { params }: { params: Promise<{ code: stri
   }
 
   return NextResponse.json({
-    team: {
-      ...team,
-      slotsLeft: Math.max(0, team.maxMembers - 1 - team.members.length),
+    teamCode: team.teamCode,
+    teamName: team.teamName,
+    sport: team.sport,
+    category: team.category,
+    captain: {
+      name: team.captain.name,
+      year: team.captain.year,
+      dept: team.captain.dept,
     },
+    members: team.members.map((m: { name: string; year: string; dept: string }) => ({
+      name: m.name,
+      year: m.year,
+      dept: m.dept,
+    })),
+    memberCount: team.members.length,
+    maxMembers: team.maxMembers,
+    status: team.status,
+    createdAt: team.createdAt,
   });
 }
-

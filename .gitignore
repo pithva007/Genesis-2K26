@@ -1,3 +1,10 @@
 node_modules
 .next
 .env.local
+.claude
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.DS_Store
+*.log
