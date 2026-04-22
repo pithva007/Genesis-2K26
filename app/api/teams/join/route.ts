@@ -7,6 +7,7 @@ import { normalizeTeamCode } from "@/lib/teamCode";
 import { queueTeamSheetSync, TeamSheetRecord } from "@/lib/googleSheets";
 import { getSportBySlug } from "@/config/sports.config";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {

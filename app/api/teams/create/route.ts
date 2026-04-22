@@ -7,6 +7,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { generateTeamCode } from "@/lib/teamCode";
 import { queueTeamSheetSync } from "@/lib/googleSheets";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {

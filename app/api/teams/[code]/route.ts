@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Team from "@/models/Team";
 import { normalizeTeamCode } from "@/lib/teamCode";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(_: Request, { params }: { params: { code: string } }) {

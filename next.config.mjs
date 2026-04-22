@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
-  serverExternalPackages: ["mongoose"],
-  images: {
-    remotePatterns: [],
+  experimental: {
+    serverComponentsExternalPackages: ['mongoose'],
   },
-};
+  output: 'standalone',
+}
 
-export default nextConfig;
+export default nextConfig

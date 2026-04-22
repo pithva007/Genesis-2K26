@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { queueTeamSheetSync } from '@/lib/googleSheets'
 
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET() {
