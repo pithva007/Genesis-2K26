@@ -41,7 +41,7 @@ export default async function AdminPage() {
           </thead>
           <tbody>
             {teams.map((t) => (
-              <tr key={t._id} className="border-b border-border hover:bg-secondary/20">
+              <tr key={t._id.toString()} className="border-b border-border hover:bg-secondary/20">
                 <td className="px-6 py-4">
                   <div className="font-bold">{t.teamName}</div>
                   <div className="text-muted-foreground text-xs font-mono">{t.teamCode}</div>
