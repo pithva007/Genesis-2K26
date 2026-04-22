@@ -21,7 +21,7 @@ export interface SportConfig {
 }
 
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-const DEPARTMENTS = [
+const DEPARTMENTS = ["UG student",
   "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology", "Pathology", "Microbiology", "Medicine", "Surgery", "Obs-Gyne", "Ophthalmology", "Pediatrics", "ENT", "Radiology", "Forensic", "Orthopedics", "Psychiatry", "Dermatology", "Anesthesia"
 ];
 

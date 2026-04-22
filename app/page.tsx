@@ -36,12 +36,7 @@ export default function HomePage() {
               <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
                 <CalendarDays className="mb-3 h-5 w-5 text-gold-300" />
                 <p className="text-sm text-white/60">Event Dates</p>
-                <p className="text-base font-semibold text-white">24–26 April 2026</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <MapPin className="mb-3 h-5 w-5 text-gold-300" />
-                <p className="text-sm text-white/60">Venue</p>
-                <p className="text-base font-semibold text-white">Genesis College Campus</p>
+                <p className="text-base font-semibold text-white">3-17 MAY 2026</p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
                 <ShieldCheck className="mb-3 h-5 w-5 text-gold-300" />
