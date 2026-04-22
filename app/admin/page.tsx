@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import { connectDB } from '@/lib/mongodb';
 import Team from '@/models/Team';
 
 export default async function AdminPage() {
@@ -23,7 +23,7 @@ export default async function AdminPage() {
     )
   }
 
-  await dbConnect();
+  await connectDB();
   const teams = await Team.find({}).sort({ createdAt: -1 });
 
   return (
