@@ -4,7 +4,7 @@ import Team from "@/models/Team";
 import { joinTeamSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { normalizeTeamCode } from "@/lib/teamCode";
-import { queueTeamSheetSync } from "@/lib/googleSheets";
+import { queueTeamSheetSync, TeamSheetRecord } from "@/lib/googleSheets";
 import { getSportBySlug } from "@/config/sports.config";
 
 export const runtime = "nodejs";
@@ -78,7 +78,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Team is full" }, { status: 409 });
   }
 
-  queueTeamSheetSync(team);
+  console.log("📊 [Join] Sending to Sheets:", JSON.stringify({
+    teamCode: team.teamCode,
+    sport: team.sport,
+    members: team.members,
+  }));
+  queueTeamSheetSync(team as TeamSheetRecord);
 
   return NextResponse.json({
     message: "Joined team",
@@ -95,4 +100,3 @@ export async function POST(req: NextRequest) {
     },
   });
 }
-

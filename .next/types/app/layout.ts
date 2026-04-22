@@ -1,4 +1,4 @@
-// File: /vercel/share/v0-project/app/layout.tsx
+// File: /Users/khushpithva/Downloads/Genesis-2K26-genesis-registration-logic/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

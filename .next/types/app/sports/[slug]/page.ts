@@ -1,4 +1,4 @@
-// File: /vercel/share/v0-project/app/sports/[slug]/page.tsx
+// File: /Users/khushpithva/Downloads/Genesis-2K26-genesis-registration-logic/app/sports/[slug]/page.tsx
 import * as entry from '../../../../../app/sports/[slug]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

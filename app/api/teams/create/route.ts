@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Team from "@/models/Team";
-import { SPORTS_CONFIG, getSportBySlug } from "@/config/sports.config";
+import { getSportBySlug } from "@/config/sports.config";
 import { createTeamSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { generateTeamCode } from "@/lib/teamCode";
@@ -62,7 +62,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unable to allocate team code" }, { status: 500 });
   }
 
-  queueTeamSheetSync(team.toObject());
+  const teamObj = team.toObject();
+  console.log("📊 [Create] Sending to Sheets:", JSON.stringify({
+    teamCode: teamObj.teamCode,
+    sport: teamObj.sport,
+    category: teamObj.category,
+    teamName: teamObj.teamName,
+    captain: teamObj.captain,
+    members: teamObj.members,
+    maxMembers: teamObj.maxMembers,
+    status: teamObj.status,
+    createdAt: teamObj.createdAt,
+  }));
+  queueTeamSheetSync(teamObj);
 
   return NextResponse.json({
     message: "Team created",
@@ -80,4 +92,3 @@ export async function POST(req: NextRequest) {
     },
   });
 }
-

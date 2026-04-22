@@ -19,31 +19,47 @@ export interface TeamSheetRecord {
   createdAt?: string | Date;
 }
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const CLIENT_EMAIL = process.env.GOOGLE_CLIENT_EMAIL;
-const PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-
+// Read env vars inside the function so they are evaluated at request time,
+// not at module load time (which can be before .env.local is applied).
 function sheetsClient() {
-  if (!SHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
+  const sheetId = process.env.GOOGLE_SHEET_ID;
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+
+  console.log(
+    "📊 [Sheets] Env check —",
+    "SHEET_ID:", sheetId ? "✅" : "❌",
+    "EMAIL:", clientEmail ? "✅" : "❌",
+    "KEY:", privateKey ? "✅" : "❌",
+  );
+
+  if (!sheetId || !clientEmail || !privateKey) {
     return null;
   }
 
+  if (
+    sheetId.includes("your_") ||
+    clientEmail.includes("your-service") ||
+    privateKey.includes("YOUR_KEY")
+  ) {
+    console.warn("⚠️ [Sheets] Placeholder values detected in env vars — skipping sync");
+    return null;
+  }
+
+  // Replace escaped newlines with real newlines and strip surrounding quotes.
+  const formattedKey = privateKey
+    .replace(/\\n/g, "\n")
+    .replace(/^"|"$/g, "");
+
+  console.log("📊 [Sheets] Private key starts with:", formattedKey.slice(0, 40));
+
   const auth = new google.auth.JWT({
-    email: CLIENT_EMAIL,
-    key: PRIVATE_KEY,
+    email: clientEmail,
+    key: formattedKey,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 
   return google.sheets({ version: "v4", auth });
-}
-
-function captainText(captain: SheetMember) {
-  return `${captain.name} | ${captain.phone} | ${captain.year} | ${captain.dept}`;
-}
-
-function membersText(members: SheetMember[]) {
-  if (!members.length) return "";
-  return members.map((member) => captainText(member)).join(" ; ");
 }
 
 function headers() {
@@ -51,26 +67,31 @@ function headers() {
     "Team Code",
     "Team Name",
     "Category",
-    "Captain Info",
+    "Captain Name",
+    "Captain Phone",
+    "Captain Year",
+    "Captain Dept",
     "Members",
     "Status",
     "Max Members",
     "Created At",
+    "Last Updated",
   ];
 }
 
 async function ensureTab(sheets: ReturnType<typeof google.sheets>, tabName: string) {
-  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID! });
+  const sheetId = process.env.GOOGLE_SHEET_ID!;
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
   const existing = spreadsheet.data.sheets ?? [];
   const exists = existing.some((sheet) => sheet.properties?.title === tabName);
 
   if (!exists) {
     await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SHEET_ID!,
+      spreadsheetId: sheetId,
       requestBody: { requests: [{ addSheet: { properties: { title: tabName } } }] },
     });
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID!,
+      spreadsheetId: sheetId,
       range: `${tabName}!A1`,
       valueInputOption: "RAW",
       requestBody: { values: [headers()] },
@@ -79,13 +100,13 @@ async function ensureTab(sheets: ReturnType<typeof google.sheets>, tabName: stri
   }
 
   const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID!,
-    range: `${tabName}!A1:H1`,
+    spreadsheetId: sheetId,
+    range: `${tabName}!A1:L1`,
   });
 
   if (!res.data.values?.length) {
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID!,
+      spreadsheetId: sheetId,
       range: `${tabName}!A1`,
       valueInputOption: "RAW",
       requestBody: { values: [headers()] },
@@ -93,9 +114,14 @@ async function ensureTab(sheets: ReturnType<typeof google.sheets>, tabName: stri
   }
 }
 
-async function findRow(sheets: ReturnType<typeof google.sheets>, tabName: string, teamCode: string) {
+async function findRow(
+  sheets: ReturnType<typeof google.sheets>,
+  tabName: string,
+  teamCode: string,
+) {
+  const sheetId = process.env.GOOGLE_SHEET_ID!;
   const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID!,
+    spreadsheetId: sheetId,
     range: `${tabName}!A:A`,
   });
 
@@ -107,64 +133,101 @@ async function findRow(sheets: ReturnType<typeof google.sheets>, tabName: string
 }
 
 function rowForTeam(team: TeamSheetRecord) {
+  const memberNames =
+    team.members && team.members.length > 0
+      ? team.members.map((m) => m.name).join(", ")
+      : "";
+
   return [
-    team.teamCode,
-    team.teamName,
-    team.category,
-    captainText(team.captain),
-    membersText(team.members),
-    team.status,
-    String(team.maxMembers),
+    team.teamCode ?? "",
+    team.teamName ?? "",
+    team.category ?? "",
+    team.captain?.name ?? "",
+    team.captain?.phone ?? "",
+    team.captain?.year ?? "",
+    team.captain?.dept ?? "",
+    memberNames,
+    team.status ?? "",
+    String(team.maxMembers ?? 0),
     new Date(team.createdAt ?? Date.now()).toISOString(),
+    new Date().toISOString(),
   ];
 }
 
 async function syncOnce(team: TeamSheetRecord) {
+  console.log("📊 [Sheets] syncOnce started for:", team.teamCode);
+
   const sheets = sheetsClient();
   if (!sheets) {
-    console.warn("Google Sheets env vars are not configured; skipping sync.");
+    console.warn("⚠️ [Sheets] sheetsClient() returned null — check env vars:");
+    console.warn("  GOOGLE_SHEET_ID:", process.env.GOOGLE_SHEET_ID ? "✅ set" : "❌ missing");
+    console.warn("  GOOGLE_CLIENT_EMAIL:", process.env.GOOGLE_CLIENT_EMAIL ? "✅ set" : "❌ missing");
+    console.warn("  GOOGLE_PRIVATE_KEY:", process.env.GOOGLE_PRIVATE_KEY ? "✅ set" : "❌ missing");
     return;
   }
 
-  const tabName = team.sport;
+  console.log("📊 [Sheets] sheetsClient() created successfully");
+  const tabName = team.sport.trim();
+  console.log("📊 [Sheets] Using tab name:", tabName);
+  console.log("📊 [Sheets] Sheet ID:", process.env.GOOGLE_SHEET_ID);
+
   await ensureTab(sheets, tabName);
+  console.log("📊 [Sheets] Tab ensured:", tabName);
 
   const row = rowForTeam(team);
+  console.log("📊 [Sheets] Row to write:", JSON.stringify(row));
+
   const existingRow = await findRow(sheets, tabName, team.teamCode);
+  console.log("📊 [Sheets] Existing row index:", existingRow);
+
+  const sheetId = process.env.GOOGLE_SHEET_ID!;
 
   if (existingRow) {
+    console.log("📊 [Sheets] Updating existing row", existingRow);
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID!,
+      spreadsheetId: sheetId,
       range: `${tabName}!A${existingRow}`,
       valueInputOption: "RAW",
       requestBody: { values: [row] },
     });
-    return;
+    console.log("✅ [Sheets] Row updated successfully");
+  } else {
+    console.log("📊 [Sheets] Appending new row");
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: `${tabName}!A1`,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: [row] },
+    });
+    console.log("✅ [Sheets] Row appended successfully");
   }
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID!,
-    range: `${tabName}!A1`,
-    valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: { values: [row] },
-  });
 }
 
 export function queueTeamSheetSync(team: TeamSheetRecord, retries = 3) {
+  console.log(
+    "📊 [Sheets] queueTeamSheetSync called for team:",
+    team.teamCode,
+    "sport:",
+    team.sport,
+  );
+
   const run = async (attempt: number) => {
+    console.log(`📊 [Sheets] Attempt ${4 - attempt} of 3 for team ${team.teamCode}`);
     try {
       await syncOnce(team);
+      console.log("✅ [Sheets] Successfully synced team:", team.teamCode);
     } catch (error) {
+      console.error(`❌ [Sheets] Attempt ${4 - attempt} failed:`, error);
       if (attempt > 0) {
         const delay = (4 - attempt) * 1500;
+        console.log(`⏳ [Sheets] Retrying in ${delay}ms...`);
         setTimeout(() => void run(attempt - 1), delay);
         return;
       }
-      console.error("Google Sheets sync failed", error);
+      console.error("❌ [Sheets] All retries failed for team:", team.teamCode);
     }
   };
 
   setTimeout(() => void run(retries), 0);
 }
-
