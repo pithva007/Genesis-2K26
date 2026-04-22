@@ -22,18 +22,7 @@ export interface SportConfig {
 
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
 const DEPARTMENTS = [
-  "CSE",
-  "ECE",
-  "EEE",
-  "MECH",
-  "CIVIL",
-  "IT",
-  "AIDS",
-  "AIML",
-  "CSD",
-  "MBA",
-  "MCA",
-  "Other",
+  "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology", "Pathology", "Microbiology", "Medicine", "Surgery", "Obs-Gyne", "Ophthalmology", "Pediatrics", "ENT", "Radiology", "Forensic", "Orthopedics", "Psychiatry", "Dermatology", "Anesthesia"
 ];
 
 const TEAM_FIELDS: FormField[] = [
