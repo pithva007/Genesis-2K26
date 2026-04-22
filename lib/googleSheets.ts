@@ -1,233 +1,244 @@
-import { google } from "googleapis";
+import { google } from 'googleapis'
 
 export interface SheetMember {
-  name: string;
-  phone: string;
-  year: string;
-  dept: string;
+  name: string
+  phone: string
+  year: string
+  dept: string
 }
 
 export interface TeamSheetRecord {
-  teamCode: string;
-  sport: string;
-  category: string;
-  teamName: string;
-  captain: SheetMember;
-  members: SheetMember[];
-  maxMembers: number;
-  status: "open" | "full" | "closed";
-  createdAt?: string | Date;
+  teamCode: string
+  sport: string
+  category: string
+  teamName: string
+  captain: SheetMember
+  members: SheetMember[]
+  maxMembers: number
+  status: 'open' | 'full' | 'closed'
+  createdAt?: string | Date
 }
 
-// Read env vars inside the function so they are evaluated at request time,
-// not at module load time (which can be before .env.local is applied).
-function sheetsClient() {
-  const sheetId = process.env.GOOGLE_SHEET_ID;
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+function getEnvVars() {
+  const sheetId = process.env.GOOGLE_SHEET_ID
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY
 
-  console.log(
-    "📊 [Sheets] Env check —",
-    "SHEET_ID:", sheetId ? "✅" : "❌",
-    "EMAIL:", clientEmail ? "✅" : "❌",
-    "KEY:", privateKey ? "✅" : "❌",
-  );
+  console.log('📊 [Sheets] Env check:')
+  console.log('  SHEET_ID:', sheetId ? `✅ ${sheetId.slice(0, 10)}...` : '❌ MISSING')
+  console.log('  CLIENT_EMAIL:', clientEmail ? `✅ ${clientEmail.slice(0, 20)}...` : '❌ MISSING')
+  console.log('  PRIVATE_KEY:', privateKey ? `✅ length=${privateKey.length}` : '❌ MISSING')
 
-  if (!sheetId || !clientEmail || !privateKey) {
-    return null;
-  }
-
+  if (!sheetId || !clientEmail || !privateKey) return null
   if (
-    sheetId.includes("your_") ||
-    clientEmail.includes("your-service") ||
-    privateKey.includes("YOUR_KEY")
+    sheetId.includes('your_') ||
+    clientEmail.includes('your-service') ||
+    privateKey.includes('YOUR_KEY')
   ) {
-    console.warn("⚠️ [Sheets] Placeholder values detected in env vars — skipping sync");
-    return null;
+    console.warn('⚠️ [Sheets] Placeholder values detected — skipping sync')
+    return null
   }
 
-  // Replace escaped newlines with real newlines and strip surrounding quotes.
-  const formattedKey = privateKey
-    .replace(/\\n/g, "\n")
-    .replace(/^"|"$/g, "");
+  return { sheetId, clientEmail, privateKey }
+}
 
-  console.log("📊 [Sheets] Private key starts with:", formattedKey.slice(0, 40));
+function createSheetsClient() {
+  const env = getEnvVars()
+  if (!env) return null
+
+  const formattedKey = env.privateKey
+    .replace(/\\n/g, '\n')
+    .replace(/^["']|["']$/g, '')
+
+  console.log('📊 [Sheets] Key preview:', formattedKey.slice(0, 50))
 
   const auth = new google.auth.JWT({
-    email: clientEmail,
+    email: env.clientEmail,
     key: formattedKey,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-  });
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
 
-  return google.sheets({ version: "v4", auth });
+  return { sheets: google.sheets({ version: 'v4', auth }), sheetId: env.sheetId }
 }
 
-function headers() {
+function getHeaders(): string[] {
   return [
-    "Team Code",
-    "Team Name",
-    "Category",
-    "Captain Name",
-    "Captain Phone",
-    "Captain Year",
-    "Captain Dept",
-    "Members",
-    "Status",
-    "Max Members",
-    "Created At",
-    "Last Updated",
-  ];
+    'Team Code',
+    'Team Name',
+    'Category',
+    'Captain Name',
+    'Captain Phone',
+    'Captain Year',
+    'Captain Dept',
+    'Members',
+    'Status',
+    'Max Members',
+    'Created At',
+    'Last Updated',
+  ]
 }
 
-async function ensureTab(sheets: ReturnType<typeof google.sheets>, tabName: string) {
-  const sheetId = process.env.GOOGLE_SHEET_ID!;
-  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
-  const existing = spreadsheet.data.sheets ?? [];
-  const exists = existing.some((sheet) => sheet.properties?.title === tabName);
-
-  if (!exists) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: sheetId,
-      requestBody: { requests: [{ addSheet: { properties: { title: tabName } } }] },
-    });
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: `${tabName}!A1`,
-      valueInputOption: "RAW",
-      requestBody: { values: [headers()] },
-    });
-    return;
-  }
-
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: `${tabName}!A1:L1`,
-  });
-
-  if (!res.data.values?.length) {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: `${tabName}!A1`,
-      valueInputOption: "RAW",
-      requestBody: { values: [headers()] },
-    });
-  }
-}
-
-async function findRow(
-  sheets: ReturnType<typeof google.sheets>,
-  tabName: string,
-  teamCode: string,
-) {
-  const sheetId = process.env.GOOGLE_SHEET_ID!;
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: `${tabName}!A:A`,
-  });
-
-  const rows = res.data.values ?? [];
-  for (let index = 1; index < rows.length; index += 1) {
-    if (rows[index]?.[0] === teamCode) return index + 1;
-  }
-  return null;
-}
-
-function rowForTeam(team: TeamSheetRecord) {
+function buildRow(team: TeamSheetRecord): string[] {
   const memberNames =
-    team.members && team.members.length > 0
-      ? team.members.map((m) => m.name).join(", ")
-      : "";
+    team.members?.length > 0 ? team.members.map((m) => m.name).join(', ') : ''
 
-  return [
-    team.teamCode ?? "",
-    team.teamName ?? "",
-    team.category ?? "",
-    team.captain?.name ?? "",
-    team.captain?.phone ?? "",
-    team.captain?.year ?? "",
-    team.captain?.dept ?? "",
+  const row = [
+    team.teamCode ?? '',
+    team.teamName ?? '',
+    team.category ?? '',
+    team.captain?.name ?? '',
+    team.captain?.phone ?? '',
+    team.captain?.year ?? '',
+    team.captain?.dept ?? '',
     memberNames,
-    team.status ?? "",
+    team.status ?? '',
     String(team.maxMembers ?? 0),
     new Date(team.createdAt ?? Date.now()).toISOString(),
     new Date().toISOString(),
-  ];
+  ]
+
+  console.log('📊 [Sheets] Built row:', JSON.stringify(row))
+  console.log('📊 [Sheets] Row length:', row.length, '(must be 12)')
+  return row
 }
 
-async function syncOnce(team: TeamSheetRecord) {
-  console.log("📊 [Sheets] syncOnce started for:", team.teamCode);
+async function ensureSheetTab(
+  sheets: ReturnType<typeof google.sheets>,
+  sheetId: string,
+  tabName: string,
+): Promise<void> {
+  console.log(`📊 [Sheets] Ensuring tab exists: "${tabName}"`)
 
-  const sheets = sheetsClient();
-  if (!sheets) {
-    console.warn("⚠️ [Sheets] sheetsClient() returned null — check env vars:");
-    console.warn("  GOOGLE_SHEET_ID:", process.env.GOOGLE_SHEET_ID ? "✅ set" : "❌ missing");
-    console.warn("  GOOGLE_CLIENT_EMAIL:", process.env.GOOGLE_CLIENT_EMAIL ? "✅ set" : "❌ missing");
-    console.warn("  GOOGLE_PRIVATE_KEY:", process.env.GOOGLE_PRIVATE_KEY ? "✅ set" : "❌ missing");
-    return;
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: sheetId })
+  const existingTabs = spreadsheet.data.sheets ?? []
+  const tabExists = existingTabs.some((s) => s.properties?.title === tabName)
+
+  if (!tabExists) {
+    console.log(`📊 [Sheets] Tab "${tabName}" not found — creating it`)
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        requests: [{ addSheet: { properties: { title: tabName } } }],
+      },
+    })
+    // Give the Sheets API time to finish creating the tab before writing
+    await new Promise((r) => setTimeout(r, 800))
   }
 
-  console.log("📊 [Sheets] sheetsClient() created successfully");
-  const tabName = team.sport.trim();
-  console.log("📊 [Sheets] Using tab name:", tabName);
-  console.log("📊 [Sheets] Sheet ID:", process.env.GOOGLE_SHEET_ID);
+  // Always verify headers are in the correct format
+  const headerRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${tabName}!A1:Z1`,
+  })
 
-  await ensureTab(sheets, tabName);
-  console.log("📊 [Sheets] Tab ensured:", tabName);
+  const currentHeaders = headerRes.data.values?.[0] ?? []
+  const needsNewHeaders =
+    currentHeaders.length === 0 ||
+    currentHeaders[3] === 'Captain Info' || // old single-column format
+    currentHeaders[3] !== 'Captain Name' // any other wrong format
 
-  const row = rowForTeam(team);
-  console.log("📊 [Sheets] Row to write:", JSON.stringify(row));
-
-  const existingRow = await findRow(sheets, tabName, team.teamCode);
-  console.log("📊 [Sheets] Existing row index:", existingRow);
-
-  const sheetId = process.env.GOOGLE_SHEET_ID!;
-
-  if (existingRow) {
-    console.log("📊 [Sheets] Updating existing row", existingRow);
+  if (needsNewHeaders) {
+    console.log(`📊 [Sheets] Writing new headers to tab "${tabName}" (old format detected or empty)`)
+    if (currentHeaders.length > 0) {
+      // Clear ALL existing data so old column layout doesn't remain
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: sheetId,
+        range: tabName,
+      })
+      await new Promise((r) => setTimeout(r, 500))
+    }
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
-      range: `${tabName}!A${existingRow}`,
-      valueInputOption: "RAW",
-      requestBody: { values: [row] },
-    });
-    console.log("✅ [Sheets] Row updated successfully");
+      range: `${tabName}!A1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [getHeaders()] },
+    })
+    console.log(`✅ [Sheets] Headers written to tab "${tabName}"`)
   } else {
-    console.log("📊 [Sheets] Appending new row");
+    console.log(`✅ [Sheets] Tab "${tabName}" already has correct headers`)
+  }
+}
+
+async function findExistingRow(
+  sheets: ReturnType<typeof google.sheets>,
+  sheetId: string,
+  tabName: string,
+  teamCode: string,
+): Promise<number | null> {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${tabName}!A:A`,
+  })
+
+  const rows = res.data.values ?? []
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i]?.[0] === teamCode) {
+      console.log(`📊 [Sheets] Found existing row for ${teamCode} at row ${i + 1}`)
+      return i + 1
+    }
+  }
+  return null
+}
+
+async function writeToSheet(team: TeamSheetRecord): Promise<void> {
+  console.log(
+    `\n📊 [Sheets] ====== Starting sync for team ${team.teamCode} (${team.sport}) ======`,
+  )
+
+  const client = createSheetsClient()
+  if (!client) {
+    console.warn('⚠️ [Sheets] No sheets client — env vars missing or placeholder')
+    return
+  }
+
+  const { sheets, sheetId } = client
+  const tabName = team.sport.trim()
+
+  await ensureSheetTab(sheets, sheetId, tabName)
+
+  const row = buildRow(team)
+  const existingRowIndex = await findExistingRow(sheets, sheetId, tabName, team.teamCode)
+
+  if (existingRowIndex) {
+    console.log(`📊 [Sheets] Updating existing row ${existingRowIndex}`)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `${tabName}!A${existingRowIndex}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [row] },
+    })
+  } else {
+    console.log(`📊 [Sheets] Appending new row`)
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: `${tabName}!A1`,
-      valueInputOption: "RAW",
-      insertDataOption: "INSERT_ROWS",
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] },
-    });
-    console.log("✅ [Sheets] Row appended successfully");
+    })
   }
+
+  console.log(`✅ [Sheets] ====== Sync complete for team ${team.teamCode} ======\n`)
 }
 
-export function queueTeamSheetSync(team: TeamSheetRecord, retries = 3) {
-  console.log(
-    "📊 [Sheets] queueTeamSheetSync called for team:",
-    team.teamCode,
-    "sport:",
-    team.sport,
-  );
+export function queueTeamSheetSync(team: TeamSheetRecord, retries = 3): void {
+  console.log(`📊 [Sheets] Queuing sync for team ${team.teamCode}`)
 
-  const run = async (attempt: number) => {
-    console.log(`📊 [Sheets] Attempt ${4 - attempt} of 3 for team ${team.teamCode}`);
+  const attempt = async (remaining: number): Promise<void> => {
     try {
-      await syncOnce(team);
-      console.log("✅ [Sheets] Successfully synced team:", team.teamCode);
-    } catch (error) {
-      console.error(`❌ [Sheets] Attempt ${4 - attempt} failed:`, error);
-      if (attempt > 0) {
-        const delay = (4 - attempt) * 1500;
-        console.log(`⏳ [Sheets] Retrying in ${delay}ms...`);
-        setTimeout(() => void run(attempt - 1), delay);
-        return;
+      await writeToSheet(team)
+    } catch (err) {
+      console.error(`❌ [Sheets] Sync failed (${remaining} retries left):`, err)
+      if (remaining > 0) {
+        const delay = (4 - remaining) * 2000
+        console.log(`⏳ [Sheets] Retrying in ${delay}ms`)
+        setTimeout(() => void attempt(remaining - 1), delay)
+      } else {
+        console.error(`❌ [Sheets] All retries exhausted for team ${team.teamCode}`)
       }
-      console.error("❌ [Sheets] All retries failed for team:", team.teamCode);
     }
-  };
+  }
 
-  setTimeout(() => void run(retries), 0);
+  // 100ms head start so the HTTP response can be sent before async work begins
+  setTimeout(() => void attempt(retries), 100)
 }
