@@ -32,7 +32,6 @@ interface TeamDashboardProps {
 export default function TeamDashboard({ teamCode, role, onClose, onLeave }: TeamDashboardProps) {
   const [team, setTeam] = useState<TeamDetails | null>(null)
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
 
   const fetchTeam = useCallback(async () => {
     try {
@@ -53,12 +52,6 @@ export default function TeamDashboard({ teamCode, role, onClose, onLeave }: Team
     const interval = setInterval(() => void fetchTeam(), 20000)
     return () => clearInterval(interval)
   }, [fetchTeam])
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(teamCode)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   const filledSlots = team ? team.memberCount : 0
   const totalSlots = team ? team.maxMembers : 1
@@ -96,30 +89,6 @@ export default function TeamDashboard({ teamCode, role, onClose, onLeave }: Team
               <p className="text-white/50 text-sm mt-1">{team.sport} • {team.category}</p>
             </div>
 
-            {/* Team code */}
-            <div className="bg-black/30 rounded-xl p-4 text-center border border-white/10">
-              <p className="text-white/50 text-xs mb-1">Team Code</p>
-              <p className="text-3xl font-mono font-black text-yellow-400 tracking-widest">{team.teamCode}</p>
-              <div className="flex gap-2 justify-center mt-3">
-                <button
-                  onClick={handleCopy}
-                  className="px-4 py-1.5 bg-yellow-400/20 text-yellow-400 rounded-lg text-xs font-bold hover:bg-yellow-400/30 transition"
-                >
-                  {copied ? '✓ Copied!' : '📋 Copy'}
-                </button>
-                {role === 'captain' && (
-                  <a
-                    href={`https://wa.me/?text=Join my team at Genesis 2K26! Sport: ${team.sport}. Use code: ${team.teamCode} to join.`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-1.5 bg-green-600/30 text-green-400 rounded-lg text-xs font-bold hover:bg-green-600/50 transition"
-                  >
-                    📱 Share
-                  </a>
-                )}
-              </div>
-            </div>
-
             {/* Captain info */}
             <div className="bg-white/5 rounded-xl p-4 border border-white/10">
               <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-2">Captain</p>
@@ -136,7 +105,7 @@ export default function TeamDashboard({ teamCode, role, onClose, onLeave }: Team
                 </span>
               </div>
               <div className="flex justify-between text-sm text-white/70 mb-2">
-                <span>{filledSlots} joined</span>
+                <span>{filledSlots} registered</span>
                 <span>{totalSlots} max</span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-2 mb-4">
@@ -146,7 +115,7 @@ export default function TeamDashboard({ teamCode, role, onClose, onLeave }: Team
                 />
               </div>
               {team.members.length === 0 ? (
-                <p className="text-white/30 text-sm text-center py-2">No members have joined yet. Share your team code!</p>
+                <p className="text-white/30 text-sm text-center py-2">No additional members registered.</p>
               ) : (
                 <div className="space-y-2">
                   {team.members.map((member, index) => (

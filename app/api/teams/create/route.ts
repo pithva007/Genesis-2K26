@@ -36,7 +36,13 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
-  const status = sport.maxMembers > 1 ? "open" : "full";
+  const members = parsed.data.members ?? [];
+  const totalRegistered = 1 + members.length; // captain + members
+  const status = totalRegistered >= sport.maxMembers ? "full" : "open";
+
+  // Use provided teamName or fall back to captain's name for individual sports
+  const teamName = parsed.data.teamName ?? parsed.data.captain.name;
+
   let team = null;
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
@@ -46,9 +52,9 @@ export async function POST(req: NextRequest) {
         teamCode,
         sport: sport.name,
         category: parsed.data.category,
-        teamName: parsed.data.teamName,
+        teamName,
         captain: parsed.data.captain,
-        members: [],
+        members,
         maxMembers: sport.maxMembers,
         status,
       });
@@ -77,7 +83,27 @@ export async function POST(req: NextRequest) {
   }));
 
   try {
-    await syncTeamToSheet(teamObj);
+    await syncTeamToSheet({
+      teamCode: teamObj.teamCode,
+      sport: teamObj.sport,
+      category: teamObj.category,
+      teamName: teamObj.teamName ?? undefined,
+      captain: {
+        name: teamObj.captain.name,
+        phone: teamObj.captain.phone ?? undefined,
+        year: teamObj.captain.year,
+        dept: teamObj.captain.dept,
+      },
+      members: teamObj.members.map((m) => ({
+        name: m.name,
+        phone: m.phone ?? undefined,
+        year: m.year,
+        dept: m.dept,
+      })),
+      maxMembers: teamObj.maxMembers,
+      status: teamObj.status,
+      createdAt: teamObj.createdAt,
+    });
   } catch (err) {
     console.error("Sheets sync failed but team was saved:", err);
   }

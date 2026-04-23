@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { SportConfig } from '@/config/sports.config'
 import SportForm from '@/components/SportForm'
-import JoinTeamForm from '@/components/JoinTeamForm'
 import TeamDashboard from '@/components/TeamDashboard'
 
 export interface RegisteredInfo {
@@ -67,40 +66,43 @@ export default function SportPageClient({ sport }: { sport: SportConfig }) {
     setShowDashboard(false)
   }
 
-  // Show header immediately during hydration to avoid layout shift
+  const SportHeader = () => (
+    <div className={`rounded-2xl bg-gradient-to-r ${sport.accent} p-6 mb-8 flex items-center gap-4`}>
+      <div className="text-6xl">{getEmoji(sport.icon)}</div>
+      <div>
+        <h1 className="text-3xl font-black text-white">{sport.name}</h1>
+        <p className="text-white/80 text-sm mt-1">
+          {sport.type === 'team'
+            ? `Team Sport • Up to ${sport.maxMembers} members`
+            : `Individual Sport`}
+        </p>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {sport.categories.map((c) => (
+            <span key={c} className="bg-black/25 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+              {c}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
   if (!mounted) {
     return (
-      <div className="min-h-screen px-4 py-8 max-w-5xl mx-auto">
+      <div className="min-h-screen px-4 py-8 max-w-2xl mx-auto">
         <a
           href="/"
           className="inline-flex items-center gap-2 text-white/50 hover:text-white/80 text-sm mb-8 transition"
         >
           ← Back to all sports
         </a>
-        <div className={`rounded-2xl bg-gradient-to-r ${sport.accent} p-6 mb-8 flex items-center gap-4`}>
-          <div className="text-6xl">{getEmoji(sport.icon)}</div>
-          <div>
-            <h1 className="text-3xl font-black text-white">{sport.name}</h1>
-            <p className="text-white/80 text-sm mt-1">
-              {sport.type === 'team'
-                ? `Team Sport • Up to ${sport.maxMembers} members`
-                : `Individual Sport • Up to ${sport.maxMembers} slot(s)`}
-            </p>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {sport.categories.map((c) => (
-                <span key={c} className="bg-black/25 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                  {c}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        <SportHeader />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 max-w-5xl mx-auto">
+    <div className="min-h-screen px-4 py-8 max-w-2xl mx-auto">
       {/* Back link */}
       <a
         href="/"
@@ -109,46 +111,27 @@ export default function SportPageClient({ sport }: { sport: SportConfig }) {
         ← Back to all sports
       </a>
 
-      {/* Sport header — rendered exactly ONCE, always visible */}
-      <div className={`rounded-2xl bg-gradient-to-r ${sport.accent} p-6 mb-8 flex items-center gap-4`}>
-        <div className="text-6xl">{getEmoji(sport.icon)}</div>
-        <div>
-          <h1 className="text-3xl font-black text-white">{sport.name}</h1>
-          <p className="text-white/80 text-sm mt-1">
-            {sport.type === 'team'
-              ? `Team Sport • Up to ${sport.maxMembers} members`
-              : `Individual Sport • Up to ${sport.maxMembers} slot(s)`}
-          </p>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {sport.categories.map((c) => (
-              <span key={c} className="bg-black/25 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                {c}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Sport header */}
+      <SportHeader />
 
-      {/* Registered banner OR forms — never both */}
+      {/* Registered success banner OR registration form */}
       {registeredInfo ? (
         <>
-          <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-6 mb-8 text-center">
+          <div className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-6 text-center">
             <p className="text-5xl mb-3">✅</p>
-            <p className="text-yellow-400 font-bold text-xl">You are registered for {sport.name}!</p>
+            <p className="text-yellow-400 font-bold text-xl">Successfully Registered!</p>
             <p className="text-white/60 text-sm mt-2">
               {registeredInfo.role === 'captain' ? '👑 Captain' : '👤 Member'} of{' '}
               <span className="text-white font-bold">{registeredInfo.teamName}</span>
             </p>
-            <p className="text-white/40 text-xs mt-1">Team Code: {registeredInfo.teamCode}</p>
             <button
               onClick={() => setShowDashboard(true)}
-              className="mt-4 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-8 py-3 rounded-xl text-base transition"
+              className="mt-4 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-8 py-3 rounded-xl"
             >
-              📋 Open My Team Dashboard
+              📋 View Team Details
             </button>
           </div>
 
-          {/* Full-screen dashboard modal */}
           {showDashboard && (
             <TeamDashboard
               teamCode={registeredInfo.teamCode}
@@ -160,24 +143,14 @@ export default function SportPageClient({ sport }: { sport: SportConfig }) {
           )}
         </>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Create Team */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-2xl font-bold text-white mb-1">🏆 Create Team</h2>
-            <p className="text-white/50 text-sm mb-6">
-              Register as captain and get a unique code to share with your team.
-            </p>
-            <SportForm sport={sport} onRegistered={handleRegistered} />
-          </div>
-
-          {/* Join Team */}
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h2 className="text-2xl font-bold text-white mb-1">🔗 Join Team</h2>
-            <p className="text-white/50 text-sm mb-6">
-              Have a team code? Enter it below to join your team.
-            </p>
-            <JoinTeamForm sport={sport} onRegistered={handleRegistered} />
-          </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 className="text-2xl font-bold text-white mb-1">🏆 Register Your Team</h2>
+          <p className="text-white/50 text-sm mb-6">
+            {sport.type === 'team'
+              ? 'Fill in your team details and add all members directly.'
+              : 'Fill in your details to register for this event.'}
+          </p>
+          <SportForm sport={sport} onRegistered={handleRegistered} />
         </div>
       )}
     </div>

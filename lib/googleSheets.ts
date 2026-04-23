@@ -2,7 +2,7 @@ import { google } from 'googleapis'
 
 export interface SheetMember {
   name: string
-  phone: string
+  phone?: string
   year: string
   dept: string
 }
@@ -11,7 +11,7 @@ export interface TeamSheetRecord {
   teamCode: string
   sport: string
   category: string
-  teamName: string
+  teamName?: string
   captain: SheetMember
   members: SheetMember[]
   maxMembers: number
@@ -111,7 +111,7 @@ function getHeaders(): string[] {
 
 function buildRow(team: TeamSheetRecord): string[] {
   const memberNames =
-    team.members?.length > 0 ? team.members.map((m) => m.name).join(', ') : ''
+    team.members?.length > 0 ? team.members.map((m) => m.name).join(', ') : 'No members added'
 
   const row = [
     team.teamCode ?? '',

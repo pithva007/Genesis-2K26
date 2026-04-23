@@ -12,11 +12,26 @@ const personSchema = z.object({
   dept: z.string().trim().min(1, "Select a department"),
 });
 
+const memberSchema = z.object({
+  name: z.string().trim().min(2, "Name required"),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      (val) => !val || /^[6-9]\d{9}$/.test(val),
+      "Enter a valid 10-digit number"
+    ),
+  year: z.string().trim().min(1, "Year required"),
+  dept: z.string().trim().min(1, "Department required"),
+});
+
 export const createTeamSchema = z.object({
   sportSlug: z.string().trim().min(1),
-  teamName: z.string().trim().min(2).max(80),
+  teamName: z.string().trim().min(2).max(80).optional(),
   category: z.string().trim().min(1),
   captain: personSchema,
+  members: z.array(memberSchema).optional().default([]),
 });
 
 export const joinTeamSchema = z.object({
@@ -33,4 +48,3 @@ export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 export type JoinTeamInput = z.infer<typeof joinTeamSchema>;
 
 export { personSchema };
-

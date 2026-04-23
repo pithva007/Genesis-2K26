@@ -7,20 +7,9 @@ export default async function AdminPage() {
   const headersList = headers();
   const authHeader = headersList.get('authorization');
 
-  // Basic Auth setup
+  // Admin is protected by middleware.ts using Basic Auth.
   if (!process.env.ADMIN_PASSWORD) {
     return <div>Admin password not configured in ENV.</div>;
-  }
-
-  if (authHeader !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-    // Note: In Next14 App router, you should handle true basic auth via middleware
-    // This is a simplified token check for demonstration per prompt instructions.
-    return (
-      <div className="p-8 max-w-md mx-auto mt-24 bg-card border border-border rounded-xl">
-        <h1 className="text-xl font-bold mb-4">Admin Access</h1>
-        <p className="text-sm text-muted-foreground mb-4">Please pass your admin password as a Bearer token in the Authorization header to view, or implement middleware for true browser Basic Auth.</p>
-      </div>
-    )
   }
 
   await connectDB();
