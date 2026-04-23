@@ -146,21 +146,6 @@ export default function SportPageClient({ sport }: { sport: SportConfig }) {
             >
               📋 Open My Team Dashboard
             </button>
-            <div className="mt-3">
-              {registeredInfo.role === 'member' && (
-                <button
-                  onClick={handleLeave}
-                  className="text-white/30 text-xs underline hover:text-white/50"
-                >
-                  Not you? Clear and re-register
-                </button>
-              )}
-              {registeredInfo.role === 'captain' && (
-                <p className="text-white/20 text-xs">
-                  You created this team. Share the code with your teammates.
-                </p>
-              )}
-            </div>
           </div>
 
           {/* Full-screen dashboard modal */}
