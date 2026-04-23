@@ -1,22 +1,26 @@
 import type { TeamDocument } from "@/models/Team";
 
-export function assertAdminPassword(provided: string | null) {
+export function assertAdminPassword(provided: string | null): boolean {
   const password = process.env.ADMIN_PASSWORD;
-  if (!password) {
-    throw new Error("ADMIN_PASSWORD is not configured");
-  }
+  if (!password) return false;
   return provided === password;
 }
 
-function escapeCsv(value: string) {
+export function verifyAdminPassword(provided: string): boolean {
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) return false;
+  return provided === password;
+}
+
+function escapeCsv(value: string): string {
   if (/["\n,]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
 }
 
-export function teamsToCsv(teams: TeamDocument[]) {
-  const rows = [
+export function teamsToCsv(teams: TeamDocument[]): string {
+  const rows: string[][] = [
     [
       "Team Code",
       "Sport",
@@ -34,14 +38,16 @@ export function teamsToCsv(teams: TeamDocument[]) {
       team.teamCode,
       team.sport,
       team.category,
-      team.teamName,
+      team.teamName ?? "",
       team.status,
       team.captain.name,
-      team.captain.phone,
+      team.captain.phone ?? "",
       team.captain.year,
       team.captain.dept,
-      team.members.map((member) => `${member.name} (${member.phone})`).join(" ; "),
-      new Date(team.createdAt).toISOString(),
+      team.members
+        .map((m) => `${m.name} (${m.phone ?? ""})`)
+        .join(" ; "),
+      new Date(team.createdAt as unknown as Date).toISOString(),
     ]),
   ];
 
@@ -49,4 +55,3 @@ export function teamsToCsv(teams: TeamDocument[]) {
     .map((row) => row.map((value) => escapeCsv(String(value ?? ""))).join(","))
     .join("\n");
 }
-
