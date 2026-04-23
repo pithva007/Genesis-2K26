@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,7 +39,6 @@ const teamFormSchema = z.object({
     year: z.string().min(1, "Select year"),
     dept: z.string().min(1, "Select department"),
   }),
-  memberCount: z.string().optional(),
   members: z.array(memberSchema).optional(),
 });
 
@@ -59,8 +58,10 @@ interface SportFormProps {
 
 export default function SportForm({ sport, onRegistered }: SportFormProps) {
   const [loading, setLoading] = useState(false);
+  // memberCount tracks the number of team-sport members the captain wants to add
+  const [memberCount, setMemberCount] = useState(0);
+
   const isTeam = sport.type === "team";
-  const maxMemberOptions = Array.from({ length: sport.maxMembers - 1 }, (_, i) => i + 1);
 
   const {
     register,
@@ -70,33 +71,44 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(teamFormSchema),
-    defaultValues: {
-      members: [],
-      memberCount: "",
-    },
+    defaultValues: { members: [] },
   });
 
-  const { fields, append, remove } = useFieldArray({ control, name: "members" });
-  const memberCount = watch("memberCount");
-  const prevCountRef = useRef(0);
+  const { fields, append, remove, replace } = useFieldArray({
+    control,
+    name: "members",
+  });
 
+  const selectedCategory = watch("category");
+
+  // ── Racket/board sports: auto-adjust member fields when category changes ──
   useEffect(() => {
-    if (!isTeam) return;
-    const count = memberCount === "" ? 0 : parseInt(memberCount ?? "0", 10);
-    if (isNaN(count)) return;
-    const prev = prevCountRef.current;
-    prevCountRef.current = count;
+    if (!sport.formatMemberCount || !selectedCategory) return;
+    const allowed = (sport.formatMemberCount[selectedCategory] ?? 1) - 1;
+    // Replace all current fields with the correct blank slate
+    replace(
+      allowed === 1 ? [{ name: "", phone: "", year: "", dept: "" }] : []
+    );
+    setMemberCount(allowed);
+  }, [selectedCategory, sport.formatMemberCount, replace]);
 
-    if (count > prev) {
-      for (let i = prev; i < count; i++) {
-        append({ name: "", phone: "", year: "", dept: "" });
-      }
-    } else if (count < prev) {
-      for (let i = prev - 1; i >= count; i--) {
-        remove(i);
-      }
+  // ── Determine how many members should be shown / selectable ──────────────
+  const getAllowedMemberCount = (): number => {
+    // No members ever for pure individual sports
+    if (sport.slug === "weight-lifting" || sport.slug === "athletics") return 0;
+
+    // Racket/board sports — format dictates the count
+    if (sport.formatMemberCount && selectedCategory) {
+      return (sport.formatMemberCount[selectedCategory] ?? 1) - 1;
     }
-  }, [memberCount, isTeam, append, remove]);
+
+    // Team sports — captain chooses (return sentinel -1)
+    if (sport.type === "team") return -1;
+
+    return 0;
+  };
+
+  const allowedMembers = getAllowedMemberCount();
 
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
@@ -110,7 +122,7 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
         category: values.category,
         captain: values.captain,
         teamName,
-        members: isTeam ? (values.members ?? []) : [],
+        members: values.members ?? [],
       };
 
       const res = await fetch("/api/teams/create", {
@@ -119,7 +131,7 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
         body: JSON.stringify(body),
       });
 
-      const data = await res.json() as { teamCode?: string; error?: string };
+      const data = (await res.json()) as { teamCode?: string; error?: string };
 
       if (res.ok) {
         const info: RegisteredInfo = {
@@ -131,7 +143,10 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
           sportName: sport.name,
           savedAt: new Date().toISOString(),
         };
-        localStorage.setItem(`genesis_registered_${sport.slug}`, JSON.stringify(info));
+        localStorage.setItem(
+          `genesis_registered_${sport.slug}`,
+          JSON.stringify(info)
+        );
         toast.success(isTeam ? "Team registered successfully!" : "Registered successfully!");
         onRegistered(info);
       } else {
@@ -155,7 +170,9 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
             placeholder="Enter your team name"
             className={inputClass}
           />
-          {errors.teamName && <p className={errorClass}>{errors.teamName.message}</p>}
+          {errors.teamName && (
+            <p className={errorClass}>{errors.teamName.message}</p>
+          )}
         </div>
       )}
 
@@ -168,12 +185,16 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        {errors.category && <p className={errorClass}>{errors.category.message}</p>}
+        {errors.category && (
+          <p className={errorClass}>{errors.category.message}</p>
+        )}
       </div>
 
       {/* Captain Details */}
       <div className="pt-2 border-t border-white/10">
-        <h4 className="font-semibold text-white/90 mb-4 text-base">👑 Captain Details</h4>
+        <h4 className="font-semibold text-white/90 mb-4 text-base">
+          👑 Captain Details
+        </h4>
         <div className="space-y-4">
           <div>
             <label className={labelClass}>Full Name *</label>
@@ -182,7 +203,9 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
               placeholder="Captain's full name"
               className={inputClass}
             />
-            {errors.captain?.name && <p className={errorClass}>{errors.captain.name.message}</p>}
+            {errors.captain?.name && (
+              <p className={errorClass}>{errors.captain.name.message}</p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Phone Number *</label>
@@ -194,7 +217,9 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
               maxLength={10}
               className={inputClass}
             />
-            {errors.captain?.phone && <p className={errorClass}>{errors.captain.phone.message}</p>}
+            {errors.captain?.phone && (
+              <p className={errorClass}>{errors.captain.phone.message}</p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Year *</label>
@@ -204,7 +229,9 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-            {errors.captain?.year && <p className={errorClass}>{errors.captain.year.message}</p>}
+            {errors.captain?.year && (
+              <p className={errorClass}>{errors.captain.year.message}</p>
+            )}
           </div>
           <div>
             <label className={labelClass}>Department *</label>
@@ -214,82 +241,203 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
-            {errors.captain?.dept && <p className={errorClass}>{errors.captain.dept.message}</p>}
+            {errors.captain?.dept && (
+              <p className={errorClass}>{errors.captain.dept.message}</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Team Members — team sports only */}
-      {isTeam && (
-        <div className="pt-2 border-t border-white/10">
-          <h4 className="font-semibold text-white/90 mb-4 text-base">👥 Team Members</h4>
+      {/* ── CASE 2: Racket sport — Singles selected (info box, no partner needed) */}
+      {sport.formatMemberCount && selectedCategory && allowedMembers === 0 && (
+        <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 p-3 text-center">
+          <p className="text-blue-300 text-sm">
+            ℹ️ Singles format — only your details are needed. No partner required.
+          </p>
+        </div>
+      )}
 
-          {maxMemberOptions.length > 0 && (
-            <div className="mb-5">
-              <label className={labelClass}>How many members? (excluding you as captain)</label>
-              <select {...register("memberCount")} className={selectClass}>
-                <option value="">None</option>
-                {maxMemberOptions.map((n) => (
-                  <option key={n} value={String(n)}>{n}</option>
+      {/* ── CASE 3: Racket sport — Doubles / Mixed Doubles (exactly 1 partner) */}
+      {sport.formatMemberCount && selectedCategory && allowedMembers === 1 && (
+        <div className="pt-2 border-t border-white/10">
+          <h4 className="font-semibold text-white/90 mb-4 text-base">
+            👥 Partner Details
+          </h4>
+          <div className="space-y-4">
+            <div>
+              <label className={labelClass}>Partner Full Name *</label>
+              <input
+                {...register("members.0.name")}
+                placeholder="Partner's full name"
+                className={inputClass}
+              />
+              {errors.members?.[0]?.name && (
+                <p className={errorClass}>{errors.members[0].name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Partner Phone (optional)</label>
+              <input
+                {...register("members.0.phone")}
+                placeholder="10-digit mobile number"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                className={inputClass}
+              />
+              {errors.members?.[0]?.phone && (
+                <p className={errorClass}>{errors.members[0].phone.message}</p>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>Partner Year *</label>
+              <select {...register("members.0.year")} className={selectClass}>
+                <option value="">Select Year...</option>
+                {YEARS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
                 ))}
               </select>
+              {errors.members?.[0]?.year && (
+                <p className={errorClass}>{errors.members[0].year.message}</p>
+              )}
             </div>
-          )}
+            <div>
+              <label className={labelClass}>Partner Department *</label>
+              <select {...register("members.0.dept")} className={selectClass}>
+                <option value="">Select Department...</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              {errors.members?.[0]?.dept && (
+                <p className={errorClass}>{errors.members[0].dept.message}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* ── CASE 4: Team sports — member count dropdown + dynamic fields */}
+      {allowedMembers === -1 && (
+        <div className="pt-2 border-t border-white/10">
+          <h4 className="font-semibold text-white/90 mb-4 text-base">
+            👥 Team Members
+          </h4>
+
+          {/* Member count selector */}
+          <div className="mb-5">
+            <label className={labelClass}>
+              Number of Members to Add (excluding you as captain)
+            </label>
+            <select
+              value={memberCount}
+              onChange={(e) => {
+                const count = parseInt(e.target.value, 10);
+                setMemberCount(count);
+                const current = fields.length;
+                if (count > current) {
+                  for (let i = current; i < count; i++) {
+                    append({ name: "", phone: "", year: "", dept: "" });
+                  }
+                } else {
+                  for (let i = current; i > count; i--) {
+                    remove(i - 1);
+                  }
+                }
+              }}
+              className={selectClass}
+            >
+              <option value={0}>0 — Register captain only</option>
+              {Array.from(
+                { length: sport.maxMembers - 1 },
+                (_, i) => i + 1
+              ).map((n) => (
+                <option key={n} value={n}>
+                  {n} member{n > 1 ? "s" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dynamic member fields */}
           {fields.map((field, index) => (
             <div
               key={field.id}
-              className="mb-4 p-4 bg-white/5 rounded-xl border border-white/10"
+              className="mb-6 p-4 rounded-xl border border-white/10 bg-white/5"
             >
-              <p className="text-white/70 text-sm font-semibold mb-3">Member {index + 1}</p>
+              <div className="flex justify-between items-center mb-3">
+                <h5 className="text-white/80 font-medium text-sm">
+                  Member {index + 1}
+                </h5>
+                <button
+                  type="button"
+                  onClick={() => {
+                    remove(index);
+                    setMemberCount((prev) => prev - 1);
+                  }}
+                  className="text-red-400/70 text-xs hover:text-red-400 transition"
+                >
+                  Remove
+                </button>
+              </div>
               <div className="space-y-3">
                 <div>
-                  <label className={labelClass}>Name *</label>
                   <input
                     {...register(`members.${index}.name`)}
-                    placeholder="Full name"
+                    placeholder="Full name *"
                     className={inputClass}
                   />
                   {errors.members?.[index]?.name && (
-                    <p className={errorClass}>{errors.members[index]?.name?.message}</p>
+                    <p className={errorClass}>
+                      {errors.members[index]?.name?.message}
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className={labelClass}>Phone (optional)</label>
                   <input
                     {...register(`members.${index}.phone`)}
-                    placeholder="10-digit mobile (optional)"
+                    placeholder="Phone (optional)"
                     type="tel"
                     inputMode="numeric"
                     maxLength={10}
                     className={inputClass}
                   />
                   {errors.members?.[index]?.phone && (
-                    <p className={errorClass}>{errors.members[index]?.phone?.message}</p>
+                    <p className={errorClass}>
+                      {errors.members[index]?.phone?.message}
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className={labelClass}>Year *</label>
-                  <select {...register(`members.${index}.year`)} className={selectClass}>
-                    <option value="">Select Year...</option>
+                  <select
+                    {...register(`members.${index}.year`)}
+                    className={selectClass}
+                  >
+                    <option value="">Select Year *</option>
                     {YEARS.map((y) => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
                   {errors.members?.[index]?.year && (
-                    <p className={errorClass}>{errors.members[index]?.year?.message}</p>
+                    <p className={errorClass}>
+                      {errors.members[index]?.year?.message}
+                    </p>
                   )}
                 </div>
                 <div>
-                  <label className={labelClass}>Department *</label>
-                  <select {...register(`members.${index}.dept`)} className={selectClass}>
-                    <option value="">Select Department...</option>
+                  <select
+                    {...register(`members.${index}.dept`)}
+                    className={selectClass}
+                  >
+                    <option value="">Select Department *</option>
                     {DEPARTMENTS.map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}
                   </select>
                   {errors.members?.[index]?.dept && (
-                    <p className={errorClass}>{errors.members[index]?.dept?.message}</p>
+                    <p className={errorClass}>
+                      {errors.members[index]?.dept?.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -303,7 +451,11 @@ export default function SportForm({ sport, onRegistered }: SportFormProps) {
         disabled={loading}
         className="w-full bg-yellow-400 hover:bg-yellow-300 disabled:opacity-60 disabled:cursor-not-allowed text-black font-bold py-3.5 rounded-xl text-base transition mt-2"
       >
-        {loading ? "Registering..." : isTeam ? "🚀 Register Team" : "🚀 Register Now"}
+        {loading
+          ? "Registering..."
+          : isTeam
+          ? "🚀 Register Team"
+          : "🚀 Register Now"}
       </button>
     </form>
   );

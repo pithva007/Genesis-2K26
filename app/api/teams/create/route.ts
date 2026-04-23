@@ -36,9 +36,16 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
+  // For racket/board sports, effective max is determined by the selected format
+  let effectiveMaxMembers = sport.maxMembers;
+  if (sport.formatMemberCount && parsed.data.category) {
+    effectiveMaxMembers =
+      sport.formatMemberCount[parsed.data.category] ?? sport.maxMembers;
+  }
+
   const members = parsed.data.members ?? [];
   const totalRegistered = 1 + members.length; // captain + members
-  const status = totalRegistered >= sport.maxMembers ? "full" : "open";
+  const status = totalRegistered >= effectiveMaxMembers ? "full" : "open";
 
   // Use provided teamName or fall back to captain's name for individual sports
   const teamName = parsed.data.teamName ?? parsed.data.captain.name;
@@ -55,7 +62,7 @@ export async function POST(req: NextRequest) {
         teamName,
         captain: parsed.data.captain,
         members,
-        maxMembers: sport.maxMembers,
+        maxMembers: effectiveMaxMembers,
         status,
       });
       break;
