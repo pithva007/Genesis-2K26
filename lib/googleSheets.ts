@@ -42,15 +42,46 @@ function getEnvVars() {
   return { sheetId, clientEmail, privateKey }
 }
 
+function formatPrivateKey(rawKey: string): string {
+  let key = rawKey.replace(/^["']|["']$/g, '').trim()
+
+  if (key.includes('-----BEGIN PRIVATE KEY-----\n')) {
+    console.log('📊 [Sheets] Key format: real newlines ✅')
+    return key
+  }
+
+  if (key.includes('\\n')) {
+    console.log('📊 [Sheets] Key format: escaped \\n — converting')
+    key = key.replace(/\\n/g, '\n')
+    return key
+  }
+
+  console.log('📊 [Sheets] Key format: no newlines — reconstructing')
+  const header = '-----BEGIN PRIVATE KEY-----'
+  const footer = '-----END PRIVATE KEY-----'
+  const body = key
+    .replace(header, '')
+    .replace(footer, '')
+    .replace(/\s/g, '')
+
+  const wrapped = body.match(/.{1,64}/g)?.join('\n') ?? body
+  return `${header}\n${wrapped}\n${footer}\n`
+}
+
 function createSheetsClient() {
   const env = getEnvVars()
   if (!env) return null
 
-  const formattedKey = env.privateKey
-    .replace(/\\n/g, '\n')
-    .replace(/^["']|["']$/g, '')
+  const formattedKey = formatPrivateKey(env.privateKey)
 
-  console.log('📊 [Sheets] Key preview:', formattedKey.slice(0, 50))
+  console.log('📊 [Sheets] Formatted key first line:', formattedKey.split('\n')[0])
+  console.log('📊 [Sheets] Formatted key lines:', formattedKey.split('\n').length)
+  console.log('📊 [Sheets] Formatted key last line:', formattedKey.split('\n').filter(Boolean).slice(-1)[0])
+
+  if (!formattedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+    console.error('❌ [Sheets] Key is malformed — aborting')
+    return null
+  }
 
   const auth = new google.auth.JWT({
     email: env.clientEmail,
@@ -241,4 +272,13 @@ export function queueTeamSheetSync(team: TeamSheetRecord, retries = 3): void {
 
   // 100ms head start so the HTTP response can be sent before async work begins
   setTimeout(() => void attempt(retries), 100)
+}
+
+export async function syncTeamToSheet(team: TeamSheetRecord): Promise<void> {
+  try {
+    await writeToSheet(team)
+  } catch (err) {
+    console.error('❌ [Sheets] Direct sync failed:', err)
+    throw err
+  }
 }

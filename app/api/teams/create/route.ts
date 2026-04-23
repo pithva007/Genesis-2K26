@@ -5,7 +5,7 @@ import { getSportBySlug } from "@/config/sports.config";
 import { createTeamSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { generateTeamCode } from "@/lib/teamCode";
-import { queueTeamSheetSync } from "@/lib/googleSheets";
+import { syncTeamToSheet } from "@/lib/googleSheets";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -75,7 +75,12 @@ export async function POST(req: NextRequest) {
     status: teamObj.status,
     createdAt: teamObj.createdAt,
   }));
-  queueTeamSheetSync(teamObj);
+
+  try {
+    await syncTeamToSheet(teamObj);
+  } catch (err) {
+    console.error("Sheets sync failed but team was saved:", err);
+  }
 
   return NextResponse.json({
     message: "Team created",

@@ -4,7 +4,7 @@ import Team from "@/models/Team";
 import { joinTeamSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { normalizeTeamCode } from "@/lib/teamCode";
-import { queueTeamSheetSync, TeamSheetRecord } from "@/lib/googleSheets";
+import { syncTeamToSheet, TeamSheetRecord } from "@/lib/googleSheets";
 import { getSportBySlug } from "@/config/sports.config";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +84,12 @@ export async function POST(req: NextRequest) {
     sport: team.sport,
     members: team.members,
   }));
-  queueTeamSheetSync(team as TeamSheetRecord);
+
+  try {
+    await syncTeamToSheet(team as TeamSheetRecord);
+  } catch (err) {
+    console.error("Sheets sync failed but member was saved:", err);
+  }
 
   return NextResponse.json({
     message: "Joined team",
