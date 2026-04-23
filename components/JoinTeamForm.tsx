@@ -9,8 +9,7 @@ import { SportConfig } from "@/config/sports.config";
 import type { RegisteredInfo } from "@/components/SportPageClient";
 
 const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
-const DEPARTMENTS = ["UG student",
-  "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology", "Pathology", "Microbiology", "Medicine", "Surgery", "Obs-Gyne", "Ophthalmology", "Pediatrics", "ENT", "Radiology", "Forensic", "Orthopedics", "Psychiatry", "Dermatology", "Anesthesia"];
+const DEPARTMENTS = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIDS', 'AIML', 'CSD', 'MBA', 'MCA', 'Other'];
 
 const formSchema = z.object({
   teamCode: z.string().length(6, "Team code must be exactly 6 characters").toUpperCase(),
@@ -69,6 +68,28 @@ export default function JoinTeamForm({ sport, onRegistered }: JoinTeamFormProps)
         setSuccessTeam({ teamName: data.team.teamName, captainName: data.team.captain.name });
         toast.success("Successfully joined the team!");
         onRegistered(info);
+      } else if (
+        data.error === 'Member already joined' ||
+        data.error?.toLowerCase().includes('already joined') ||
+        data.error?.toLowerCase().includes('already registered')
+      ) {
+        const teamRes = await fetch(`/api/teams/${values.teamCode.toUpperCase()}`);
+        const teamData = teamRes.ok ? await teamRes.json() : null;
+        const teamName: string = teamData?.teamName ?? 'Your Team';
+
+        toast.success('You are already registered in this team!');
+
+        const info: RegisteredInfo = {
+          teamCode: values.teamCode.toUpperCase(),
+          teamName,
+          role: 'member',
+          memberName: values.member.name,
+          sportSlug: sport.slug,
+          sportName: sport.name,
+          savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(`genesis_registered_${sport.slug}`, JSON.stringify(info));
+        if (onRegistered) onRegistered(info);
       } else {
         toast.error(data.error || "Failed to join team");
       }
