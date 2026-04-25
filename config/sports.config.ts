@@ -185,6 +185,16 @@ export const SPORTS_CONFIG: SportConfig[] = [
     icon: "mixed-cricket",
     accent: "from-lime-500 to-green-700",
   },
+  {
+    slug: "valay-dand",
+    name: "Valay Dand",
+    type: "team",
+    maxMembers: 15,
+    categories: ["Men", "Women"],
+    fields: TEAM_FIELDS,
+    icon: "valay-dand",
+    accent: "from-orange-600 to-red-700",
+  },
 ];
 
 export function getSportBySlug(slug: string) {

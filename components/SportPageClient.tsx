@@ -28,6 +28,7 @@ const EMOJI_MAP: Record<string, string> = {
   'weight-lifting': '🏋️‍♂️',
   athletics: '🏃‍♂️',
   'mixed-cricket': '🏏',
+  'valay-dand' : '🥋'
 }
 
 function getEmoji(icon: string) {
