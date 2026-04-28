@@ -23,7 +23,7 @@ export interface SportConfig {
   accent: string;
 }
 
-const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"];
+const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Intern", "SR"];
 const DEPARTMENTS = [
   "UG student",
   "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology", "Pathology",
@@ -62,7 +62,7 @@ export const SPORTS_CONFIG: SportConfig[] = [
     name: "Football",
     type: "team",
     maxMembers: 15,
-    categories: ["Men", "Women", "Open"],
+    categories: ["Men"],
     fields: TEAM_FIELDS,
     icon: "football",
     accent: "from-sky-500 to-blue-700",
@@ -72,7 +72,7 @@ export const SPORTS_CONFIG: SportConfig[] = [
     name: "Basketball",
     type: "team",
     maxMembers: 15,
-    categories: ["Men", "Women", "Open"],
+    categories: ["Men", "Women"],
     fields: TEAM_FIELDS,
     icon: "basketball",
     accent: "from-orange-500 to-amber-700",
@@ -82,7 +82,7 @@ export const SPORTS_CONFIG: SportConfig[] = [
     name: "Volleyball",
     type: "team",
     maxMembers: 15,
-    categories: ["Men", "Women", "Open"],
+    categories: ["Men", "Women"],
     fields: TEAM_FIELDS,
     icon: "volleyball",
     accent: "from-violet-500 to-fuchsia-700",
@@ -92,7 +92,7 @@ export const SPORTS_CONFIG: SportConfig[] = [
     name: "Kabaddi",
     type: "team",
     maxMembers: 15,
-    categories: ["Men", "Women", "Open"],
+    categories: ["Men", "Women"],
     fields: TEAM_FIELDS,
     icon: "kabaddi",
     accent: "from-red-500 to-rose-700",
@@ -117,10 +117,11 @@ export const SPORTS_CONFIG: SportConfig[] = [
     name: "Carrom",
     type: "individual",
     maxMembers: 2,
-    categories: ["Singles", "Doubles"],
+    categories: ["Singles", "Doubles", "Mixed Doubles"],
     formatMemberCount: {
       Singles: 1,
       Doubles: 2,
+      "Mixed Doubles": 2,
     },
     fields: TEAM_FIELDS,
     icon: "carrom",
