@@ -22,6 +22,7 @@ function SportGlyph({ icon }: { icon: string }) {
     case "weight-lifting": return <span className="text-3xl drop-shadow-md">🏋️‍♂️</span>;
     case "athletics": return <span className="text-3xl drop-shadow-md">🏃‍♂️</span>;
     case "valay-dand": return <span className="text-3xl drop-shadow-md">💪</span>;
+    case "chess": return <span className="text-3xl drop-shadow-md">♟️</span>;
     case "mixed-cricket":
     case "cricket":
     default: return <span className="text-3xl drop-shadow-md">🏏</span>;

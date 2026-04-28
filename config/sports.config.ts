@@ -128,6 +128,16 @@ export const SPORTS_CONFIG: SportConfig[] = [
     accent: "from-amber-500 to-yellow-700",
   },
   {
+    slug: "chess",
+    name: "Chess",
+    type: "individual",
+    maxMembers: 1,
+    categories: ["Men", "Women", "Open"],
+    fields: TEAM_FIELDS,
+    icon: "chess",
+    accent: "from-stone-500 to-stone-800",
+  },
+  {
     slug: "badminton",
     name: "Badminton",
     type: "individual",
