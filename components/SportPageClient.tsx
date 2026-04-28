@@ -28,7 +28,7 @@ const EMOJI_MAP: Record<string, string> = {
   'weight-lifting': '🏋️‍♂️',
   athletics: '🏃‍♂️',
   'mixed-cricket': '🏏',
-  'valay-dand' : '🥋'
+  'valay-dand' : '💪'
 }
 
 function getEmoji(icon: string) {
@@ -125,12 +125,20 @@ export default function SportPageClient({ sport }: { sport: SportConfig }) {
               {registeredInfo.role === 'captain' ? '👑 Captain' : '👤 Member'} of{' '}
               <span className="text-white font-bold">{registeredInfo.teamName}</span>
             </p>
-            <button
-              onClick={() => setShowDashboard(true)}
-              className="mt-4 bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-8 py-3 rounded-xl"
-            >
-              📋 View Team Details
-            </button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-4">
+              <button
+                onClick={() => setShowDashboard(true)}
+                className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold px-8 py-3 rounded-xl"
+              >
+                📋 View Team Details
+              </button>
+              <button
+                onClick={handleLeave}
+                className="border border-yellow-400/30 hover:bg-yellow-400/10 text-yellow-400 font-bold px-8 py-3 rounded-xl transition"
+              >
+                ➕ Register Another
+              </button>
+            </div>
           </div>
 
           {showDashboard && (
