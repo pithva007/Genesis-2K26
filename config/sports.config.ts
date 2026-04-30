@@ -23,7 +23,7 @@ export interface SportConfig {
   accent: string;
 }
 
-const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Intern", "SR"];
+const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Intern", "SR", "HOD", "Associate Professor", "Assistant Professor"];
 const DEPARTMENTS = [
   "UG student",
   "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology", "Pathology",
