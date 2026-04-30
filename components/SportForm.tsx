@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { SportConfig } from "@/config/sports.config";
 import type { RegisteredInfo } from "@/components/SportPageClient";
 
-const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Intern", "SR"];
+const YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Intern", "SR", "HOD", "Associate Professor", "Assistant Professor"];
 const DEPARTMENTS = [
   "UG student",
   "Anatomy", "Physiology", "Biochemistry", "PSM", "Pharmacology",
