@@ -14,6 +14,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="dark">
       <body className={inter.variable}>
+        <a
+          href="https://khushpithva.in/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full bg-yellow-500/10 hover:bg-yellow-500/20 border-b border-yellow-500/20 text-center py-1.5 text-xs text-yellow-400/80 hover:text-yellow-300 transition-colors duration-200"
+        >
+          Made with ❤️ &nbsp;·&nbsp; Developed by <span className="font-semibold underline underline-offset-2">KHUSH</span>
+        </a>
         <Providers>{children}</Providers>
       </body>
     </html>
