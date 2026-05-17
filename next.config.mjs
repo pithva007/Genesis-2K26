@@ -3,7 +3,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['mongoose'],
   },
-  output: 'standalone',
 }
 
 export default nextConfig
