@@ -150,3 +150,5 @@ To configure the live synchronization to Google Sheets, follow these steps:
 - **Rate Limiting:** Protects endpoints from registration floods or denial-of-service attempts by throttling users to **30 requests per minute** per IP.
 - **Index Optimization:** Database structures in [models/Team.ts](file:///Users/khushpithva/Documents/Genesis-2K26-genesis-registration-logic/models/Team.ts) are optimized with compounded and unique indexes on `teamCode`, `sport`, and `status` to ensure sub-millisecond retrieval speeds under high concurrency.
 - **Automatic Queue Retries:** The Google Sheets connector utilizes an exponential backoff queued task runner to ensure that sheets sync successfully even during API downtime or rate-limit saturation by Google.
+
+- Build with ❤️ By Khush Pithva
